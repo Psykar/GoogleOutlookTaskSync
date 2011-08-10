@@ -208,21 +208,26 @@ completed <> DateCompleted
 due <> DueDate
 """
 
-tasks = googletasks.service.tasks().list(tasklist = result['id'] ).execute()
+gtasks = googletasks.service.tasks().list(tasklist = result['id'] ).execute()
 # print tasks['items']
-if 'items' in tasks:
+if 'items' in gtasks:
   #for task in tasks['items']:
     # Try and match each 
   #  print task['title']
   
-  for task in outlooktasks.records:
-    newtask = convertToGoogle(task)
-    result = googletasks.service.tasks().insert(tasklist = googlelistid, body=newtask).execute()
+  for otask in outlooktasks.records:
+    if otask['Subject'] in [gtask['title'] for gtask in gtasks['items']]:
+      # exists so update it, assumes there will be no duplicate titles
+      print "Exists!"
+    else:
+      # doesn't exist, so add it
+      newtask = convertToGoogle(otask)
+      result = googletasks.service.tasks().insert(tasklist = googlelistid, body=newtask).execute()
     
 else:
   # Simply add all outlook tasks
-  for task in outlooktasks.records:
-    newtask = convertToGoogle(task)
+  for otask in outlooktasks.records:
+    newtask = convertToGoogle(otask)
     result = googletasks.service.tasks().insert(tasklist = googlelistid, body=newtask).execute()
   
   
