@@ -1,0 +1,4 @@
+In progress.
+Will eventually sync Outlook Tasks with Google Tasks in a similar way to Google Calendar Sync.
+
+Depends on Google's Python API and a few other things to be added.
