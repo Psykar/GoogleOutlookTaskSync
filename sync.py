@@ -188,6 +188,7 @@ outlooktasks = outlook()
 for tasklist in googletasks.tasklists['items']:
   if GOOGLE_LIST_NAME == tasklist['title'] :
     result = tasklist
+    googlelistid = result['id']
     break
 # If the outlook task list doesn't exist on google then create it
 else:
