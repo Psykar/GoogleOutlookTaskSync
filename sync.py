@@ -193,6 +193,7 @@ for tasklist in googletasks.tasklists['items']:
 else:
   tasklist = { 'title': GOOGLE_LIST_NAME }
   result = googletasks.service.tasklists().insert(body=tasklist).execute()
+  googlelistid = result['id']
   googletasks.update
 
 
@@ -215,13 +216,13 @@ if 'items' in tasks:
   
   for task in outlooktasks.records:
     newtask = convertToGoogle(task)
-    result = googletasks.service.tasks().insert(tasklist = result['id'], body=newtask).execute()
+    result = googletasks.service.tasks().insert(tasklist = googlelistid, body=newtask).execute()
     
 else:
   # Simply add all outlook tasks
   for task in outlooktasks.records:
     newtask = convertToGoogle(task)
-    result = googletasks.service.tasks().insert(tasklist = result['id'], body=newtask).execute()
+    result = googletasks.service.tasks().insert(tasklist = googlelistid, body=newtask).execute()
   
   
 def printa():
