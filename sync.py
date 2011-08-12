@@ -39,7 +39,9 @@ FLAGS = gflags.FLAGS
 
 toOutlook = {'title' : 'Subject',  'notes' : 'Body', 'status' : 'Complete'}
 #  'due' : 'DueDate', 'updated' : 'LastModificationTime', 'completed' : 'DateCompleted'
-importantKeys = [  "Subject", "Complete", "Body"]
+
+# Important 
+importantKeys = [  "Subject", "Complete", "Body", "EntryID"]
 # "ReminderTime", "CreationTime", "StartDate", "DueDate", "DateCompleted", "LastModificationTime",
 
 toGoogle = dict ((v,k) for k,v in toOutlook.items())
@@ -95,9 +97,7 @@ class outlook:
     ns = outlook.GetNamespace("MAPI")
     ofTasks = ns.GetDefaultFolder(win32com.client.constants.olFolderTasks)
 
-    # print "tasks:", len(ofTasks.Items)
-
-    
+        
     for taskno in range(len(ofTasks.Items)):
       # print "taskno: ", taskno
       task = ofTasks.Items.Item(taskno+1)
@@ -106,7 +106,9 @@ class outlook:
         # print "keys: ", len(task._prop_map_get_)
         #for key in task._prop_map_get_:
         # if isinstance(getattr(task,key), (int,str,unicode)):
+        
         for key in task._prop_map_get_:
+          
           if key in importantKeys:
             
             keys.append(key)
@@ -115,6 +117,7 @@ class outlook:
         for key in keys:
           record[key] = getattr(task,key)
         self.records.append(record)
+      first = False
 
 
 class google:
@@ -216,11 +219,27 @@ if 'items' in gtasks:
   #  print task['title']
   
   for otask in outlooktasks.records:
-    if otask['Subject'] in [gtask['title'] for gtask in gtasks['items']]:
-      # exists so update it, assumes there will be no duplicate titles
-      print "Exists!"
+    # print otask['Subject']
+    for gtask in gtasks['items']:
+      if otask['Subject'] == gtask['title']:
+        # exists so update it, assumes there will be no duplicate titles
+        if 'notes' in gtask:
+          if otask['Body'] == gtask['notes']:
+            print "-Totally matches!"
+        elif otask['Body'] :
+          # Need to add the body
+          print "-otask has Body gtask doesn't??"
+          print otask['Subject']
+          print otask['Body']
+          # print gtask['notes']
+        else:
+          print "Neither have a body!"
+          
+        break
+        
     else:
       # doesn't exist, so add it
+      print "!!!!!!!!!!!!!!!!doesn't exist!!!!!!!!!!!!!!!!!!!!"
       newtask = convertToGoogle(otask)
       result = googletasks.service.tasks().insert(tasklist = googlelistid, body=newtask).execute()
     
