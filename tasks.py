@@ -84,10 +84,11 @@ def toGoogleKey(item):
 
 
   if key == "status":
-    if value:
-      value = 'completed'
-    else:
+    print key, value
+    if not value or value == "needsAction":
       value = 'needsAction'
+    else:
+      value = 'completed'
 
   
   timeFields = {'updated','completed','due'}
