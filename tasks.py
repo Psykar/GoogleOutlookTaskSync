@@ -266,9 +266,12 @@ class google():
   
 
     
-  def modify(self,task,listid,taskid):
-    task['id'] = taskid
-    return self.service.tasks().update(tasklist = listid, body=task, task=taskid).execute()
+  def modify(self,gtask,taskid):
+    gtask['id'] = taskid
+    result = self.service.tasks().update(tasklist = self.listid, body=gtask, task=taskid).execute()
+    modtask = task(dic=result.items())
+    
+    return modtask
 
   def update(self):
     self.tasklists = self.service.tasklists().list().execute()
