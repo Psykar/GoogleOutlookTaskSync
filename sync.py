@@ -44,9 +44,9 @@ if True:
           # print "Look at modified time of ", gtask['title']
           
           # gtime is always in utc
+          # TODO: update the __eqs__ function for direct comaparison here
           gtime = datetime.datetime.strptime(gtask['updated'],"%Y-%m-%dT%H:%M:%S.%fZ")
-
-          otime = otask['updatedUTC']
+          otime = otask.updatedUTC()
           
           if otime > gtime:
             updatedG = updatedG + 1
@@ -57,7 +57,7 @@ if True:
             # Replace outlook with google
             updatedO = updatedO + 1
             print "Replacing outlook with google"
-            newtask = convertToOutlook(gtask)
+            newtask = gtask.convertToOutlook()
             otask = outlooktasks.modify(newtask,conf.idMap[gtask['id']])
           
           
@@ -78,7 +78,6 @@ if True:
   # Now need to add google tasks to outlook
   # Note that all matching ID's should have been done now, so we don't need to match ID's any more, just add them as we create them.
   # gtasks shoudl only contain tasks not in outlook now
-  print len(gtasks)
   for gtask in gtasks:
     
     createdOnOutlook = createdOnOutlook + 1
