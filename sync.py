@@ -79,7 +79,6 @@ if True:
   # Note that all matching ID's should have been done now, so we don't need to match ID's any more, just add them as we create them.
   # gtasks shoudl only contain tasks not in outlook now
   for gtask in gtasks:
-    
     createdOnOutlook = createdOnOutlook + 1
     otask = outlooktasks.create(gtask.convertToOutlook())
     conf.addMapping(otask,gtask)

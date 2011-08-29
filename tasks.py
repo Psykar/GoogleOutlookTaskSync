@@ -99,15 +99,15 @@ def toGoogleKey(item):
 
 class task(dict):
 
-  def __init__(self, dict=None, obj=None):
+  def __init__(self, dic=None, obj=None):
     dict.__init__(self)
-    
-    if dict is not None:
-      for key,value in dict:
+    if dic is not None:
+      for key,value in dic:
         self[key] = value
     elif obj is not None:
       for key in obj._prop_map_get_:
-        self[key] = getattr(obj,key)
+        if key in importantKeys:
+          self[key] = getattr(obj,key)
   
   def __setitem__(self,key,value):
     if key in toGoogle:
@@ -165,7 +165,7 @@ class outlook():
       if otask.Class == win32com.client.constants.olTask:
         
         newtask = task(obj=otask)
-      
+        self.tasks.append(newtask)
   def modify(self, task, taskid):
     updatetask = self.ns.GetItemFromID(taskid)
     for key,value in task.items():
@@ -279,7 +279,7 @@ class google():
     result = self.service.tasks().insert(tasklist = self.listid, body=gtask).execute()
     
     # Construct task container for result
-    newtask = task(dict=result.items())
+    newtask = task(dic=result.items())
     
     return newtask
     
@@ -288,7 +288,7 @@ class google():
     gtasks = []
     if 'items' in results:
       for result in results['items']:
-        gtask = task(dict=result.items())
+        gtask = task(dic=result.items())
         gtasks.append(gtask)
       
     return gtasks
