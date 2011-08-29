@@ -84,7 +84,6 @@ def toGoogleKey(item):
 
 
   if key == "status":
-    print key, value
     if not value or value == "needsAction":
       value = 'needsAction'
     else:
