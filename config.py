@@ -24,6 +24,6 @@ class config:
     cPickle.dump(self.idMap,output)
     
   def addMapping(self,otask,gtask):
-    self.idMap[otask['EntryID']] = gtask['id']
-    self.idMap[gtask['id']] = otask['EntryID']
+    self.idMap[otask['id']] = gtask['id']
+    self.idMap[gtask['id']] = otask['id']
   

@@ -33,15 +33,13 @@ GOOGLE_LIST_NAME = "Ericsson"
 
 FLAGS = gflags.FLAGS
 
-
 toOutlook = {'title' : 'Subject',  'notes' : 'Body', 'status' : 'Complete', 'id' : "EntryID"}
 #  'due' : 'DueDate', 'updated' : 'LastModificationTime', 'completed' : 'DateCompleted'
+toGoogle = dict ((v,k) for k,v in toOutlook.items())
 
 # Important 
 importantKeys = [  "Subject", "Complete", "Body", "EntryID", "LastModificationTime"]
 # "ReminderTime", "CreationTime", "StartDate", "DueDate", "DateCompleted", "LastModificationTime",
-
-toGoogle = dict ((v,k) for k,v in toOutlook.items())
 
 def toDateTime(value):
   if value.year == 4501:
@@ -62,7 +60,7 @@ def toDateTime(value):
     second=value.second
   ))
   return value
-
+  
 def toOutlookKey(item):
   key,value = item
   
@@ -79,7 +77,10 @@ def toOutlookKey(item):
   
 def toGoogleKey(item):
   key,value = item
+  
+
   key = toGoogle[key]
+
 
   if key == "status":
     if value:
@@ -93,26 +94,56 @@ def toGoogleKey(item):
   if key in timeFields:
     value = toDateTime(value)
     
-  return [key,value]
+  return [key,value]  
 
-def convertToGoogle(task):
-  for key,value in task.items():
-    if key not in toGoogle:
-      del task[key]
-  res = dict ((toGoogleKey(item)) for item in task.items())
-  return res
-  
-def convertToOutlook(task):
-  for key,value in task.items():
-    if key not in toOutlook:
-      del task[key]
-  res = dict ((toOutlookKey(item)) for item in task.items())
-  return res
-  
-  
-class outlook:
+class task(dict):
+
   def __init__(self):
-    self.records = []
+    dict.__init__(self)
+  
+  def __setitem__(self,key,value):
+    if key in toGoogle:
+      key,value = toGoogleKey([key,value])
+      dict.__setitem__(self,key,value)
+    else:
+      dict.__setitem__(self,key,value)
+  
+  def __getitem__(self,key):
+    try:
+      return dict.__getitem__(self,key)
+    except KeyError:
+      return dict.__getitem__(self,toGoogle[key])
+  
+
+
+  def convertToGoogle(self):
+    res = dict ()
+    for item in self.items():
+      try:
+        key,value = toGoogleKey(item)
+        res[key] = value
+      except KeyError:
+        next
+    return res
+    
+  def convertToOutlook(self):
+    res = dict ()
+    for item in self.items():
+      try:
+        key,value = toOutlookKey(item)
+        res[key] = value
+      except KeyError:
+        next
+    return res
+    
+  def updatedUTC(self):
+    offset = datetime.datetime.now() - datetime.datetime.utcnow()
+    return datetime.datetime.strptime(str(self.task['LastModificationTime']),"%m/%d/%y %H:%M:%S") - offset
+  
+  
+class outlook():
+  def __init__(self):
+    self.tasks = []
     self.outlook = win32com.client.gencache.EnsureDispatch("Outlook.Application")
     # outlook = win32com.client.Dispatch("Outlook.Application")
     self.ns = self.outlook.GetNamespace("MAPI")
@@ -121,24 +152,14 @@ class outlook:
         
     for taskno in range(len(ofTasks.Items)):
       # print "taskno: ", taskno
-      task = ofTasks.Items.Item(taskno+1)
-      if task.Class == win32com.client.constants.olTask:
-        keys = []
-        # print "keys: ", len(task._prop_map_get_)
-        #for key in task._prop_map_get_:
-        # if isinstance(getattr(task,key), (int,str,unicode)):
+      otask = ofTasks.Items.Item(taskno+1)
+      if otask.Class == win32com.client.constants.olTask:
         
-        for key in task._prop_map_get_:
-          
-          if key in importantKeys:
-            
-            keys.append(key)
-        
-        record = {}
-        for key in keys:
-          record[key] = getattr(task,key)
-        self.records.append(record)
-      first = False
+        newtask = task()
+        for key in otask._prop_map_get_:
+          newtask[key] = getattr(otask,key)
+        self.tasks.append(newtask)
+    
       
   def modify(self, task, taskid):
     updatetask = self.ns.GetItemFromID(taskid)
@@ -147,10 +168,10 @@ class outlook:
         setattr(updatetask,key,value)
     updatetask.Save()
   
-  def create(self, task):
+  def create(self, gtask):
     newtask = self.outlook.CreateItem(win32com.client.constants.olTaskItem)
     
-    for key,value in task.items():
+    for key,value in gtask.items():
       # Set values for this new task, ensure EntryID isn't set
       if not key == "EntryID":
         setattr(newtask,key,value)
@@ -159,23 +180,20 @@ class outlook:
     # Now convert this task into a dict format used elsewhere.
     # TODO: Combine this bit with the _init_ fuction...
     
-    keys = []
+    otask = task()
     for key in newtask._prop_map_get_:
-          
-      if key in importantKeys:
-        
-        keys.append(key)
-    record = {}
-    for key in keys:
-      record[key] = getattr(newtask,key)
+      otask[key] = getattr(newtask,key)
     
-    return record
+    return otask
     
-    
+  def getTasks(self):
+    return self.tasks
 
 
-class google:
-  def __init__(self):
+class google():
+  def __init__(self, list_name):
+  
+  
     # Set up a Flow object to be used if we need to authenticate. This
     # sample uses OAuth 2.0, and we set up the OAuth2WebServerFlow with
     # the information it needs to authenticate. Note that it is called
@@ -230,24 +248,40 @@ class google:
     # to get a developerKey for your own application.
     self.service = build(serviceName='tasks', version='v1', http=http, developerKey='45198696978.apps.googleusercontent.com')
 
-    self.tasklists = self.service.tasklists().list().execute()
     
-  def modify(self,task,googlelistid,taskid):
-    task['id'] = taskid
-    return self.service.tasks().update(tasklist = googlelistid, body=task, task=taskid).execute()
-
-  def update():
-    self.tasklists = self.service.tasklists().list().execute()
-
-  def add(self,task,googlelistid):
-    # Need to strip the ID first
-    del task['id']
-    return self.service.tasks().insert(tasklist = googlelistid, body=task).execute()
-    
+    self.update()
+    # Find the outlook task list on google
+    for tasklist in self.tasklists['items']:
+      if list_name == tasklist['title'] :
+        self.listid = tasklist['id']
+        break
+    # If the outlook task list doesn't exist on google then create it
+    else:
+      tasklist = { 'title': list_name }
+      result = googletasks.service.tasklists().insert(body=tasklist).execute()
+      self.listid = result['id']
+      self.update()
   
-def printa():
-  for tasklist in googletasks.tasklists:
-    print tasklist['title']
 
-  for tasklist in outlooktasks.records:
-    print tasklist["Subject"]
+    
+  def modify(self,task,listid,taskid):
+    task['id'] = taskid
+    return self.service.tasks().update(tasklist = listid, body=task, task=taskid).execute()
+
+  def update(self):
+    self.tasklists = self.service.tasklists().list().execute()
+
+  def add(self,task):
+    return self.service.tasks().insert(tasklist = self.listid, body=task).execute()
+    
+  def getTasks(self):
+    results = self.service.tasks().list(tasklist = self.listid ).execute()
+    gtasks = []
+    for result in results['items']:
+      gtask = task()
+      for key,value in result.items():
+        gtask[key] = value
+      gtasks.append(gtask)
+    
+    return gtasks
+
