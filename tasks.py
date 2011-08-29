@@ -1,6 +1,9 @@
 import gflags
 import urllib
 import httplib2
+import time
+import datetime
+
 
 from apiclient.discovery import build
 from oauth2client.file import Storage
@@ -35,7 +38,7 @@ toOutlook = {'title' : 'Subject',  'notes' : 'Body', 'status' : 'Complete', 'id'
 #  'due' : 'DueDate', 'updated' : 'LastModificationTime', 'completed' : 'DateCompleted'
 
 # Important 
-importantKeys = [  "Subject", "Complete", "Body", "EntryID"]
+importantKeys = [  "Subject", "Complete", "Body", "EntryID", "LastModificationTime"]
 # "ReminderTime", "CreationTime", "StartDate", "DueDate", "DateCompleted", "LastModificationTime",
 
 toGoogle = dict ((v,k) for k,v in toOutlook.items())
@@ -45,7 +48,7 @@ def toDateTime(value):
     # Combination of pywin being old and Outlook COM being stupid 
     # returns year 4501 if there is no due date 
     # (ie latest possible date acc'd to outlook)
-    # key = 
+    # Fix this to the max date rfc3339 will take?
     value  = rfc3339(datetime.datetime(2011,9,8,17,37,0))
     # value.year = 3000
     return [key,value]
@@ -90,12 +93,14 @@ def toGoogleKey(item):
   if key in timeFields:
     value = toDateTime(value)
     
-
   return [key,value]
 
 def convertToGoogle(task):
-  toGoogle = dict ((toGoogleKey(item)) for item in task.items())
-  return toGoogle
+  for key,value in task.items():
+    if key not in toGoogle:
+      del task[key]
+  res = dict ((toGoogleKey(item)) for item in task.items())
+  return res
   
 def convertToOutlook(task):
   for key,value in task.items():
@@ -110,8 +115,8 @@ class outlook:
     self.records = []
     self.outlook = win32com.client.gencache.EnsureDispatch("Outlook.Application")
     # outlook = win32com.client.Dispatch("Outlook.Application")
-    ns = self.outlook.GetNamespace("MAPI")
-    ofTasks = ns.GetDefaultFolder(win32com.client.constants.olFolderTasks)
+    self.ns = self.outlook.GetNamespace("MAPI")
+    ofTasks = self.ns.GetDefaultFolder(win32com.client.constants.olFolderTasks)
 
         
     for taskno in range(len(ofTasks.Items)):
@@ -134,6 +139,13 @@ class outlook:
           record[key] = getattr(task,key)
         self.records.append(record)
       first = False
+      
+  def modify(self, task, taskid):
+    updatetask = self.ns.GetItemFromID(taskid)
+    for key,value in task.items():
+      if not key == "EntryID":
+        setattr(updatetask,key,value)
+    updatetask.Save()
   
   def create(self, task):
     newtask = self.outlook.CreateItem(win32com.client.constants.olTaskItem)
@@ -219,13 +231,16 @@ class google:
     self.service = build(serviceName='tasks', version='v1', http=http, developerKey='45198696978.apps.googleusercontent.com')
 
     self.tasklists = self.service.tasklists().list().execute()
+    
+  def modify(self,task,googlelistid,taskid):
+    task['id'] = taskid
+    return self.service.tasks().update(tasklist = googlelistid, body=task, task=taskid).execute()
 
   def update():
     self.tasklists = self.service.tasklists().list().execute()
 
   def add(self,task,googlelistid):
     # Need to strip the ID first
-    id = task['id']
     del task['id']
     return self.service.tasks().insert(tasklist = googlelistid, body=task).execute()
     
