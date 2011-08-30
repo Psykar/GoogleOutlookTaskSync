@@ -26,9 +26,9 @@ createdOnOutlook = 0
 
 def updateTask(task1, task2):
   # Something doesn't match, check modification times
-  # update the older task with details from the new one and return it
+  # create a new task to update the older side
   
-  # gtime is always in utc
+  # TODO: Edit convert() to return a task object, not a dict
   # TODO: update the __eqs__ function for direct comaparison here
   global updatedG
   global updatedO
@@ -63,10 +63,8 @@ for otask in otasks[:]:
       
       if otask['title'] != gtask['title'] or otask['status'] != gtask['status']:
         updateTask(otask,gtask)
-        #
       elif 'notes' in gtask and otask['notes'] != gtask['notes']:
         updateTask(otask,gtask)
-        #task2 = googletasks.modify(newtask,conf.idMap[task1['id']])
       break
 
   else:
