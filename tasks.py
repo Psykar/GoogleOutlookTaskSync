@@ -66,9 +66,9 @@ def toOutlookKey(item):
   
   if key == "status":
     if value == "completed":
-      value = 1 == 1
+      value = True
     else:
-      value = not 1 == 1
+      value = False
   
   if key not in toGoogle:
     key = toOutlook[key]
@@ -111,13 +111,6 @@ class task(dict):
         if key in importantKeys:
           self[key] = getattr(obj,key)
   
-  def __setitem__(self,key,value):
-    if key in toGoogle:
-      key,value = toGoogleKey([key,value])
-      dict.__setitem__(self,key,value)
-    else:
-      dict.__setitem__(self,key,value)
-  
   def __getitem__(self,key):
     try:
       return dict.__getitem__(self,key)
@@ -127,11 +120,23 @@ class task(dict):
       except KeyError:
         return dict.__getitem__(self,toOutlook[key])
   
+  def __contains__(self,key):
+    if dict.__contains__(self,key):
+      return True
+    else:
+      try:
+        if self[key] != None:
+          return True
+        else:
+          return False
+      except KeyError:
+        return False
+    
 
 
   def convertToGoogle(self):
     # print self
-    res = dict ()
+    res = task (google=True)
     for item in self.items():
       try:
         key,value = toGoogleKey(item)
@@ -141,7 +146,7 @@ class task(dict):
     return res
     
   def convertToOutlook(self):
-    res = dict ()
+    res = task (outlook=True)
     for item in self.items():
       try:
         key,value = toOutlookKey(item)
@@ -152,9 +157,9 @@ class task(dict):
     
   def convert(self):
     if self.outlook:
-      return ['google',self.convertToGoogle()]
+      return self.convertToGoogle()
     elif self.google:
-      return ['outlook',self.convertToOutlook()]
+      return self.convertToOutlook()
     raise TypeError
     
   def updatedUTC(self):
@@ -164,6 +169,14 @@ class task(dict):
     except KeyError:
       return datetime.datetime.strptime(self['updated'],"%Y-%m-%dT%H:%M:%S.%fZ")
   
+  def completed(self):
+    if self['status'] == "needsAction":
+      return False
+    elif self['status'] == "completed":
+      return True
+    else:
+      return self['status']
+
 class outlook():
   def __init__(self):
     self.tasks = []
@@ -171,20 +184,18 @@ class outlook():
     # outlook = win32com.client.Dispatch("Outlook.Application")
     self.ns = self.outlook.GetNamespace("MAPI")
     ofTasks = self.ns.GetDefaultFolder(win32com.client.constants.olFolderTasks)
-
         
     for taskno in range(len(ofTasks.Items)):
-      # print "taskno: ", taskno
       otask = ofTasks.Items.Item(taskno+1)
       if otask.Class == win32com.client.constants.olTask:
-        
         newtask = task(obj=otask,outlook=True)
         self.tasks.append(newtask)
   def modify(self, task, taskid):
     updatetask = self.ns.GetItemFromID(taskid)
-    for key,value in task.items():
+    for key in updatetask._prop_map_get_:
       if not key == "EntryID":
-        setattr(updatetask,key,value)
+        if key in task:
+          setattr(updatetask,key,task[key])
     updatetask.Save()
   
   def add(self, gtask):
@@ -209,7 +220,7 @@ class outlook():
 class google():
   def __init__(self, list_name):
   
-  
+    print "Connecting to Google",
     # Set up a Flow object to be used if we need to authenticate. This
     # sample uses OAuth 2.0, and we set up the OAuth2WebServerFlow with
     # the information it needs to authenticate. Note that it is called
@@ -222,7 +233,7 @@ class google():
         client_secret='PXAHwAr3i9vh13ckf2M89Zve',
         scope='https://www.googleapis.com/auth/tasks',
         user_agent='YOUR_APPLICATION_NAME/YOUR_APPLICATION_VERSION')
-
+    print ".",
     # To disable the local server feature, uncomment the following line:
     # FLAGS.auth_local_webserver = False
 
@@ -231,15 +242,17 @@ class google():
     # Credentials will get written back to a file.
     storage = Storage('tasks.dat')
     credentials = storage.get()
-
+    print ".",
 
 
     if credentials is None or credentials.invalid == True:
       credentials = run(FLOW, storage)
+      print ".",
 
     # Create an httplib2.Http object to handle our HTTP requests and authorize it
     # with our good Credentials.
     proxies = urllib.getproxies()
+    print ".",
     # if len(proxies) > 0:
     if 1 < 2:
       # proxy_type, proxy_url = proxies.items()[0]
@@ -258,16 +271,19 @@ class google():
     else:
       http = httplib2.Http(disable_ssl_certificate_validation=True)
     http = credentials.authorize(http)
+    print ".",
 
     # Build a service object for interacting with the API. Visit
     # the Google APIs Console
     # to get a developerKey for your own application.
     self.service = build(serviceName='tasks', version='v1', http=http, developerKey='45198696978.apps.googleusercontent.com')
-
+    print ".",
     
     self.update()
+    print ".",
     # Find the outlook task list on google
     for tasklist in self.tasklists['items']:
+      print ".",
       if list_name == tasklist['title'] :
         self.listid = tasklist['id']
         break
@@ -276,9 +292,10 @@ class google():
       tasklist = { 'title': list_name }
       result = self.service.tasklists().insert(body=tasklist).execute()
       self.listid = result['id']
+      print ".",
       self.update()
-  
-
+    
+    print " done"
     
   def modify(self,gtask,taskid):
     gtask['id'] = taskid
@@ -301,12 +318,14 @@ class google():
     return newtask
     
   def getTasks(self):
+    print "Getting tasks.",
     results = self.service.tasks().list(tasklist = self.listid ).execute()
+    print ".",
     gtasks = []
     if 'items' in results:
       for result in results['items']:
         gtask = task(dic=result.items(),google=True)
         gtasks.append(gtask)
-      
+    print "done."
     return gtasks
 

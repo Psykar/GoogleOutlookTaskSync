@@ -36,21 +36,21 @@ def updateTask(task1, task2):
   time2 = task2.updatedUTC()
   
   if time1 > time2:
-    type,newtask = task1.convert()
+    newtask = task1.convert()
   else:
-    type,newtask = task2.convert()
+    newtask = task2.convert()
   
-  if type == 'google':
+  if newtask.google:
     updatedG = updatedG + 1
     return googletasks.modify(newtask,conf.idMap[newtask['id']])
-  elif type == 'outlook':
+  elif newtask.outlook:
     updatedO = updatedO + 1
-    return outlooktasks.modify(newtask,conf.idMap[newtask['EntryID']])
+    return outlooktasks.modify(newtask,conf.idMap[newtask['id']])
   raise TypeError
 
 # Add outlook tasks to google
 for otask in otasks[:]:
-  print ".",
+  
   
   for gtask in gtasks[:]:
     if gtask['id'] in conf.idMap and conf.idMap[gtask['id']] == otask['id']:
@@ -59,9 +59,11 @@ for otask in otasks[:]:
       matched = matched + 1
       gtasks.remove(gtask)
       outlooktasks.tasks.remove(otask)
-
       
-      if otask['title'] != gtask['title'] or otask['status'] != gtask['status']:
+      if otask['title'] != gtask['title']:
+        updateTask(otask,gtask)
+      elif otask.completed() != gtask.completed():
+        print otask['status'], gtask['status']
         updateTask(otask,gtask)
       elif 'notes' in gtask and otask['notes'] != gtask['notes']:
         updateTask(otask,gtask)
@@ -83,7 +85,6 @@ for gtask in gtasks:
   otask = outlooktasks.add(gtask.convertToOutlook())
   conf.addMapping(otask,gtask)
   
-print "."
 print "Updated on Google: ",updatedG,"\nUpdated on Outlook: ",updatedO
 print "Matched: ",matched,"\nCreated on Google: ",createdOnGoogle,"\nCreated on Outlook: ",createdOnOutlook
 
