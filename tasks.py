@@ -99,8 +99,10 @@ def toGoogleKey(item):
 
 class task(dict):
 
-  def __init__(self, dic=None, obj=None):
+  def __init__(self, dic=None, obj=None, google=False, outlook=False):
     dict.__init__(self)
+    self.google = google
+    self.outlook = outlook
     if dic is not None:
       for key,value in dic:
         self[key] = value
@@ -120,7 +122,10 @@ class task(dict):
     try:
       return dict.__getitem__(self,key)
     except KeyError:
-      return dict.__getitem__(self,toGoogle[key])
+      try:
+        return dict.__getitem__(self,toGoogle[key])
+      except KeyError:
+        return dict.__getitem__(self,toOutlook[key])
   
 
 
@@ -145,10 +150,19 @@ class task(dict):
         next
     return res
     
+  def convert(self):
+    if self.outlook:
+      return ['google',self.convertToGoogle()]
+    elif self.google:
+      return ['outlook',self.convertToOutlook()]
+    raise TypeError
+    
   def updatedUTC(self):
     offset = datetime.datetime.now() - datetime.datetime.utcnow()
-    return datetime.datetime.strptime(str(self['LastModificationTime']),"%m/%d/%y %H:%M:%S") - offset
-  
+    try:
+      return datetime.datetime.strptime(str(self['LastModificationTime']),"%m/%d/%y %H:%M:%S") - offset
+    except KeyError:
+      return datetime.datetime.strptime(self['updated'],"%Y-%m-%dT%H:%M:%S.%fZ")
   
 class outlook():
   def __init__(self):
@@ -164,7 +178,7 @@ class outlook():
       otask = ofTasks.Items.Item(taskno+1)
       if otask.Class == win32com.client.constants.olTask:
         
-        newtask = task(obj=otask)
+        newtask = task(obj=otask,outlook=True)
         self.tasks.append(newtask)
   def modify(self, task, taskid):
     updatetask = self.ns.GetItemFromID(taskid)
@@ -173,7 +187,7 @@ class outlook():
         setattr(updatetask,key,value)
     updatetask.Save()
   
-  def create(self, gtask):
+  def add(self, gtask):
     newtask = self.outlook.CreateItem(win32com.client.constants.olTaskItem)
     
     for key,value in gtask.items():
@@ -184,7 +198,7 @@ class outlook():
     
     # Now convert this task into a dict format used elsewhere.
         
-    otask = task(obj=newtask)
+    otask = task(obj=newtask,outlook=True)
     
     return otask
     
@@ -269,7 +283,7 @@ class google():
   def modify(self,gtask,taskid):
     gtask['id'] = taskid
     result = self.service.tasks().update(tasklist = self.listid, body=gtask, task=taskid).execute()
-    modtask = task(dic=result.items())
+    modtask = task(dic=result.items(),google=True)
     
     return modtask
 
@@ -282,7 +296,7 @@ class google():
     result = self.service.tasks().insert(tasklist = self.listid, body=gtask).execute()
     
     # Construct task container for result
-    newtask = task(dic=result.items())
+    newtask = task(dic=result.items(),google=True)
     
     return newtask
     
@@ -291,7 +305,7 @@ class google():
     gtasks = []
     if 'items' in results:
       for result in results['items']:
-        gtask = task(dic=result.items())
+        gtask = task(dic=result.items(),google=True)
         gtasks.append(gtask)
       
     return gtasks

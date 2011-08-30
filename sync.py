@@ -24,6 +24,29 @@ matched = 0
 createdOnGoogle = 0
 createdOnOutlook = 0
 
+def updateTask(task1, task2):
+  # Something doesn't match, check modification times
+  # update the older task with details from the new one and return it
+  
+  # gtime is always in utc
+  # TODO: update the __eqs__ function for direct comaparison here
+  global updatedG
+  global updatedO
+  time1 = task1.updatedUTC()
+  time2 = task2.updatedUTC()
+  
+  if time1 > time2:
+    type,newtask = task1.convert()
+  else:
+    type,newtask = task2.convert()
+  
+  if type == 'google':
+    updatedG = updatedG + 1
+    return googletasks.modify(newtask,conf.idMap[newtask['id']])
+  elif type == 'outlook':
+    updatedO = updatedO + 1
+    return outlooktasks.modify(newtask,conf.idMap[newtask['EntryID']])
+  raise TypeError
 
 # Add outlook tasks to google
 for otask in otasks[:]:
@@ -38,31 +61,12 @@ for otask in otasks[:]:
       outlooktasks.tasks.remove(otask)
 
       
-      if otask['title'] != gtask['title']:
-        # Something doesn't match, check modification times
-        # print "Look at modified time of ", gtask['title']
-        
-        # gtime is always in utc
-        # TODO: update the __eqs__ function for direct comaparison here
-        gtime = datetime.datetime.strptime(gtask['updated'],"%Y-%m-%dT%H:%M:%S.%fZ")
-        otime = otask.updatedUTC()
-        
-        if otime > gtime:
-          updatedG = updatedG + 1
-          # Replace google with outlook
-          newtask = otask.convertToGoogle()
-          gtask = googletasks.modify(newtask,conf.idMap[otask['id']])
-        else:
-          # Replace outlook with google
-          updatedO = updatedO + 1
-          newtask = gtask.convertToOutlook()
-          otask = outlooktasks.modify(newtask,conf.idMap[gtask['id']])
-        
-        
-        
+      if otask['title'] != gtask['title'] or otask['status'] != gtask['status']:
+        updateTask(otask,gtask)
+        #
       elif 'notes' in gtask and otask['notes'] != gtask['notes']:
-        # Something doesn't match, check modification times
-        print "Look at modified time of ", gtask['title']
+        updateTask(otask,gtask)
+        #task2 = googletasks.modify(newtask,conf.idMap[task1['id']])
       break
 
   else:
@@ -78,7 +82,7 @@ for otask in otasks[:]:
 # gtasks shoudl only contain tasks not in outlook now
 for gtask in gtasks:
   createdOnOutlook = createdOnOutlook + 1
-  otask = outlooktasks.create(gtask.convertToOutlook())
+  otask = outlooktasks.add(gtask.convertToOutlook())
   conf.addMapping(otask,gtask)
   
 print "."
