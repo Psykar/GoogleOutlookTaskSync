@@ -179,17 +179,24 @@ class task(dict):
 
 class outlook():
   def __init__(self):
+    print "Connecting to outlook.",
     self.tasks = []
     self.outlook = win32com.client.gencache.EnsureDispatch("Outlook.Application")
+    print ".",
     # outlook = win32com.client.Dispatch("Outlook.Application")
     self.ns = self.outlook.GetNamespace("MAPI")
+    print ".",
     ofTasks = self.ns.GetDefaultFolder(win32com.client.constants.olFolderTasks)
+    print ".",
         
     for taskno in range(len(ofTasks.Items)):
+      print "Processing task ",taskno
       otask = ofTasks.Items.Item(taskno+1)
       if otask.Class == win32com.client.constants.olTask:
+        
         newtask = task(obj=otask,outlook=True)
         self.tasks.append(newtask)
+        
   def modify(self, task, taskid):
     updatetask = self.ns.GetItemFromID(taskid)
     for key in updatetask._prop_map_get_:

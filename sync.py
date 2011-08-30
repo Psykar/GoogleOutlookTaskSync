@@ -28,7 +28,6 @@ def updateTask(task1, task2):
   # Something doesn't match, check modification times
   # create a new task to update the older side
   
-  # TODO: Edit convert() to return a task object, not a dict
   # TODO: update the __eqs__ function for direct comaparison here
   global updatedG
   global updatedO
@@ -50,8 +49,6 @@ def updateTask(task1, task2):
 
 # Add outlook tasks to google
 for otask in otasks[:]:
-  
-  
   for gtask in gtasks[:]:
     if gtask['id'] in conf.idMap and conf.idMap[gtask['id']] == otask['id']:
       # ID's have been matched, update depending on modified times
