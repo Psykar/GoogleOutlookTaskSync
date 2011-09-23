@@ -34,6 +34,7 @@ def updateTask(task1, task2):
   time1 = task1.updatedUTC()
   time2 = task2.updatedUTC()
   
+  
   if time1 > time2:
     newtask = task1.convert()
   else:
@@ -60,20 +61,21 @@ for otask in otasks[:]:
       if otask['title'] != gtask['title']:
         updateTask(otask,gtask)
       elif otask.completed() != gtask.completed():
-        print otask['status'], gtask['status']
         updateTask(otask,gtask)
-      elif 'notes' in gtask and otask['notes'] != gtask['notes']:
-        updateTask(otask,gtask)
+      # Commented so outlook confirmation not required, but body won't sync
+      # elif 'notes' in gtask and otask['notes'] != gtask['notes']:
+      #  updateTask(otask,gtask)
       break
 
   else:
-    # doesn't exist, so add it
-    createdOnGoogle = createdOnGoogle + 1
-    newtask = otask.convertToGoogle()
-    gtask = googletasks.add(newtask)
+    # doesn't exist, so add it, provided the outlook task isn't already complete.
+    if not otask.completed():
+      createdOnGoogle = createdOnGoogle + 1
+      newtask = otask.convertToGoogle()
+      gtask = googletasks.add(newtask)
+      
+      conf.addMapping(otask,gtask)
     
-    conf.addMapping(otask,gtask)
-
 # Now need to add google tasks to outlook
 # Note that all matching ID's should have been done now, so we don't need to match ID's any more, just add them as we create them.
 # gtasks shoudl only contain tasks not in outlook now

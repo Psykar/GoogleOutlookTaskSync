@@ -38,7 +38,10 @@ toOutlook = {'title' : 'Subject',  'notes' : 'Body', 'status' : 'Complete', 'id'
 toGoogle = dict ((v,k) for k,v in toOutlook.items())
 
 # Important 
-importantKeys = [  "Subject", "Complete", "Body", "EntryID", "LastModificationTime"]
+# importantKeys = [  "Subject", "Complete", "Body", "EntryID", "LastModificationTime"]
+
+# Commented so body isn't read - this removes need for confirmation in Outlook
+importantKeys = [  "Subject", "Complete", "EntryID", "LastModificationTime"]
 # "ReminderTime", "CreationTime", "StartDate", "DueDate", "DateCompleted", "LastModificationTime",
 
 def toDateTime(value):
@@ -190,7 +193,7 @@ class outlook():
     print ".",
         
     for taskno in range(len(ofTasks.Items)):
-      print "Processing task ",taskno
+      # print "Processing task ",taskno
       otask = ofTasks.Items.Item(taskno+1)
       if otask.Class == win32com.client.constants.olTask:
         
