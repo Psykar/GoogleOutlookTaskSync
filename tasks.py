@@ -14,6 +14,8 @@ from rfc3339 import rfc3339
 import pywintypes
 import win32com.client
 
+USING_PROXY = False
+
 if win32com.client.gencache.is_readonly == True:
   #allow gencache to create the cached wrapper objects
   win32com.client.gencache.is_readonly = False
@@ -264,7 +266,7 @@ class google():
     proxies = urllib.getproxies()
     print ".",
     # if len(proxies) > 0:
-    if 1 > 2:
+    if USING_PROXY:
       # proxy_type, proxy_url = proxies.items()[0]
       # proxy_protocol, proxy_url = proxy_url.split('://')
       # proxy_url, proxy_port = proxy_url.split(':')
