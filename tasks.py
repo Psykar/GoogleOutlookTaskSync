@@ -264,7 +264,7 @@ class google():
     proxies = urllib.getproxies()
     print ".",
     # if len(proxies) > 0:
-    if 1 < 2:
+    if 1 > 2:
       # proxy_type, proxy_url = proxies.items()[0]
       # proxy_protocol, proxy_url = proxy_url.split('://')
       # proxy_url, proxy_port = proxy_url.split(':')
