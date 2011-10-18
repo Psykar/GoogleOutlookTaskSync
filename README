@@ -4,10 +4,12 @@ Will eventually sync Outlook Tasks with Google Tasks in a similar way to Google 
 Depends on Google's Python API and a few other things to be added.
 
 Dependencies:
+Microsoft Outlook (obviously?)
 Python 2.7: 					http://www.python.org/download/
 Python for Windows Extensions:	http://sourceforge.net/projects/pywin32/files/
 Google Python API:				http://code.google.com/p/google-api-python-client/.
-RFC 3339 formatter: rfc3339.py:	http://henry.precheur.org/projects/rfc3339
+
+
 
 Note: If using x64 version of python you may need to instal setup tools, see below for more details:
 http://pypi.python.org/pypi/setuptools#windows
